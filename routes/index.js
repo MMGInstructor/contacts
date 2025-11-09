@@ -32,7 +32,7 @@ router.post('/seed', async function(req, res) {
     const seedSQL = `
       DROP TABLE IF EXISTS contacts;
       CREATE TABLE contacts(
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         firstname VARCHAR(30) NOT NULL,
         lastname VARCHAR(30) NOT NULL,
         email VARCHAR(50) NOT NULL
