@@ -5,7 +5,7 @@ const db = require('../db/config')
 /* Show home page. */
 router.get('/', function(req, res) {
   // we first check if the 'contacts' table exists
-  db.pool..query("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'contacts')", function(err,results) {
+  db.pool.query("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'contacts')", function(err,results) {
     if (err) {
       console.log(err);
       res.render('index', { error: 'Database connection failure! '+err.stack, contacts: null, title: 'Contact List' });
