@@ -1,52 +1,59 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db/config')
+const db = require('../db/config'); // tu pool de mysql2/promise
 
 /* Show home page. */
-router.get('/', function(req, res) {
-  // we first check if the 'contacts' table exists
-   db.query("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'contacts')", function(err,results) {
-    if (err) {
-      console.log(err);
-      res.render('index', { error: 'Database connection failure! '+err.stack, contacts: null, title: 'Contact List' });
-    }
+router.get('/', async function(req, res) {
+  try {
+    // Verificar si la tabla 'contacts' existe
+    const [existsRows] = await db.query(
+      "SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'contacts'"
+    );
 
-    // 'contacts' table does not exist. Show an empty table.
-    else if(results.rows[0].exists == false) {
+    if (existsRows[0].count === 0) {
+      // La tabla no existe
       res.render('index', { error: null, contacts: null, title: 'Contact List' });
+      return;
     }
 
-    // 'contacts' table exists. Show the records.
-    else {
-      db.query('SELECT * FROM contacts', function(err,results) {
-        if (err) {
-          console.log(err);
-          res.render('index', { error: 'Database connection failure! '+err.stack, contacts: null, title: 'Contact List' });
-        }
-        else {
-          let contacts = results.rows;
-          console.log(contacts);
-          res.render('index', { error: null, contacts: contacts, title: 'Contact List' });
-        }
-      })  
-    }
-  });
+    // La tabla existe, obtener los registros
+    const [contactsRows] = await db.query('SELECT * FROM contacts');
+    res.render('index', { error: null, contacts: contactsRows, title: 'Contact List' });
+
+  } catch (err) {
+    console.error(err);
+    res.render('index', { error: 'Database connection failure! ' + err.stack, contacts: null, title: 'Contact List' });
+  }
 });
 
 /* Seed test data */
-router.post('/seed', function(req,res) {
-  // drop 'contacts' table if already exists, and seed some test data
-  db.query("drop table if exists contacts; create table contacts(id serial primary key,firstname varchar(30) not null,lastname varchar(30) not null, email varchar(30) not null); insert into contacts(firstname, lastname, email) values ('Bilbo','Baggins','bilbo@theshire.com'),('Frodo','Baggins','frodo@theshire.com'),('Samwise','Gamgee','sam@theshire.com'),('Peregrin','Took','pippin@theshire.com'),('Meriadoc','Brandybuck','merry@theshire.com')",function(err,results) {
-    if (err) {
-      console.log(err);
-      res.render('index', { error: 'Seeding database failure! '+err.stack, contacts: null, title: 'Contact List' });
-    }
+router.post('/seed', async function(req, res) {
+  try {
+    const seedSQL = `
+      DROP TABLE IF EXISTS contacts;
+      CREATE TABLE contacts(
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        firstname VARCHAR(30) NOT NULL,
+        lastname VARCHAR(30) NOT NULL,
+        email VARCHAR(50) NOT NULL
+      );
+      INSERT INTO contacts(firstname, lastname, email) VALUES
+        ('Bilbo','Baggins','bilbo@theshire.com'),
+        ('Frodo','Baggins','frodo@theshire.com'),
+        ('Samwise','Gamgee','sam@theshire.com'),
+        ('Peregrin','Took','pippin@theshire.com'),
+        ('Meriadoc','Brandybuck','merry@theshire.com');
+    `;
 
-    // redirect to the index page
-    else {
-      res.redirect('/');
-    }
-  });
+    // mysql2 no permite múltiples queries por defecto en pool.query
+    // Habilitar multipleStatements en config.js si quieres ejecutar todo junto
+    await db.query(seedSQL);
+
+    res.redirect('/');
+  } catch (err) {
+    console.error(err);
+    res.render('index', { error: 'Seeding database failure! ' + err.stack, contacts: null, title: 'Contact List' });
+  }
 });
 
 module.exports = router;

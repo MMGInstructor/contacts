@@ -1,19 +1,37 @@
-require('dotenv').config();
+// db/config.js
 const mysql = require('mysql2/promise');
+require('dotenv').config();
 
-// Ejemplo de variable de entorno:
-// DB_CONFIG = mysql://usuario:password@localhost:3306/nombre_basedatos
-const DB_CONFIG = process.env.DB_CONFIG || 'mysql://contacts:contacts@localhost:3306/contacts';
+// Leer variables de entorno
+const DB_HOST = process.env.DB_HOST || 'localhost';
+const DB_USER = process.env.DB_USER || 'contacts';
+const DB_PASSWORD = process.env.DB_PASSWORD || 'contacts';
+const DB_NAME = process.env.DB_NAME || 'contacts';
+const DB_PORT = process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 3306;
 
-async function createConnection() {
+// Crear el pool de conexiones
+const pool = mysql.createPool({
+  host: DB_HOST,
+  user: DB_USER,
+  password: DB_PASSWORD,
+  database: DB_NAME,
+  port: DB_PORT,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
+// Test de conexión al iniciar la app
+(async () => {
   try {
-    const connection = await mysql.createConnection(DB_CONFIG);
+    const conn = await pool.getConnection();
     console.log('✅ Conexión a MySQL establecida correctamente');
-    return connection;
-  } catch (error) {
-    console.error('❌ Error al conectar con MySQL:', error);
-    throw error;
+    conn.release();
+  } catch (err) {
+    console.error('❌ Error al conectar con MySQL:', err);
+    process.exit(1); // salir si no se puede conectar
   }
-}
+})();
 
-module.exports = { createConnection };
+module.exports = pool;
+
