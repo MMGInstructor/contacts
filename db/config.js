@@ -23,4 +23,4 @@ pool.getConnection()
   });
 
 // Exportar el pool para usarlo en otros módulos
-module.exports = { pool };
+module.exports = pool;
