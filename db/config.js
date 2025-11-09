@@ -18,7 +18,8 @@ const pool = mysql.createPool({
   port: DB_PORT,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  multipleStatements: true 
 });
 
 // Test de conexión al iniciar la app
